@@ -1,0 +1,37 @@
+[Unit]
+Description=Minecraft Server
+After=network-online.target minecraft.socket
+Wants=network-online.target
+Requires=minecraft.socket
+
+[Service]
+User=minecraft
+Group=minecraft
+WorkingDirectory=/opt/minecraft
+EnvironmentFile=/etc/minecraft.env
+
+# Same value for -Xms and -Xmx avoids heap resizing pauses.
+ExecStart=/usr/bin/java -Xms${MC_RAM} -Xmx${MC_RAM} -jar server.jar nogui
+
+# Console input arrives through the FIFO defined in minecraft.socket.
+Sockets=minecraft.socket
+StandardInput=socket
+StandardOutput=journal
+StandardError=journal
+
+# SIGTERM triggers Minecraft's shutdown hook, which saves the world.
+# Give it time to finish before systemd resorts to SIGKILL.
+TimeoutStopSec=120
+SuccessExitStatus=0 143
+Restart=on-failure
+RestartSec=10
+
+# Basic hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/minecraft
+
+[Install]
+WantedBy=multi-user.target
